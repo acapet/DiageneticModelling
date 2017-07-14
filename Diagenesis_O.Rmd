@@ -1,8 +1,11 @@
 ---
 title: "Oxygen Diagenesis"
 author: "Karline Soetaert and Arthur Capet"
-date: "4 mei 2017"
-output: github_document
+date: "July 2017"
+output:
+ # html_document: default
+#  pdf_document: default
+  github_document : default
 ---
 
 ```{r setup, include=FALSE}
@@ -27,15 +30,15 @@ grid <- setup.grid.1D(N = 100, L = 10)
 
 ### 3. Model equations
 We consider **diffusion** and constant **respiration** above a certain depth. 
-$$\frac{\partial O_2(z)}{\partial t}=\frac{\partial O_2(z)}{\partial t}|_{trasnport}-\gamma(z)$$
+$$\frac{\partial O_2(z)}{\partial t}=\frac{\partial O_2(z)}{\partial t}|_{transport}-\gamma(z)$$
 
 $O_2$ is a concentration in $\mathrm{mmol~m^{-3}_{liquid}}$ and we have to consider porosity $\phi$.
 $$ \frac{\partial O_2(z)}{\partial t} =  \frac{1}{\phi}\frac{\partial}{\partial z}[\phi D \frac{\partial C}{\partial z }]  - \gamma (z) $$
 Boundary conditons are imposed as:
 
 * constant concentration at the sediment-water interface
-$$ O_2(z=0) = O_{2, bottom} $$
-* nul gradient at the lower cell $$ \frac{\partial O_2}{\partial z}|_{(z=sediment~bottom)}=0$$
+$$ O_2|_{z=0} = O_{2, bottom} $$
+* nul gradient at the lower cell $$ \frac{\partial O_2}{\partial z}|_{z=deep}=0$$
 
 ```{r model}
 O2model <- function (t, O2, p) {
@@ -62,7 +65,7 @@ parms <- c(
 ```
 
 # Simulation
-Let us now compute the steady state solutions for three set of parameters (multiplying the respiration rate) and plot the ouputs.
+Let us now compute the steady state solutions for three set of parameters (considering different respiration rates) and plot the ouputs.
 
 ```{r runs, fig.width=5, fig.height = 5,fig.align="center"}
 parms2 <- parms3 <- parms
@@ -81,6 +84,7 @@ plot(out, out2, out3, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$
 ```
 
 -------------------
+
 # Specific Outputs
 So far the variable ´out´ contains the steady-state solution and the diagnostic ´O2cons´
 ```{r}
@@ -154,10 +158,11 @@ plot(summary(sRf), xlab = "nmol/cm2/d",  main="O2 flux")
 
 # Exercices
 
-# 1. Explore the range of model response to variations of other parameters
+## 1. Explore the range of model response to variations of other parameters
 *Hint* : Just adapt parRange in the upper code.
+[Start Here](Diagenesis_O_Ex1.Rmd)
 
-# 2. Read measured data (Flux and/or Profiles), include them to the plot
+## 2. Read measured data (Flux and/or Profiles), include them to the plot
 *Hint* : use read.table to read the data. Add them to the previous plot using ´line´ and ´points´
 
 Example:

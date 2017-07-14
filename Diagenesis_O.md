@@ -1,7 +1,7 @@
 Oxygen Diagenesis
 ================
 Karline Soetaert and Arthur Capet
-4 mei 2017
+July 2017
 
 Set-up
 ======
@@ -33,16 +33,16 @@ grid <- setup.grid.1D(N = 100, L = 10)
 ### 3. Model equations
 
 We consider **diffusion** and constant **respiration** above a certain depth.
-$$\\frac{\\partial O\_2(z)}{\\partial t}=\\frac{\\partial O\_2(z)}{\\partial t}|\_{trasnport}-\\gamma(z)$$
+$$\\frac{\\partial O\_2(z)}{\\partial t}=\\frac{\\partial O\_2(z)}{\\partial t}|\_{transport}-\\gamma(z)$$
 
 *O*<sub>2</sub> is a concentration in *m**m**o**l* *m*<sub>*l**i**q**u**i**d*</sub><sup>−3</sup> and we have to consider porosity *ϕ*.
 $$ \\frac{\\partial O\_2(z)}{\\partial t} =  \\frac{1}{\\phi}\\frac{\\partial}{\\partial z}\[\\phi D \\frac{\\partial C}{\\partial z }\]  - \\gamma (z) $$
  Boundary conditons are imposed as:
 
 -   constant concentration at the sediment-water interface
-    *O*<sub>2</sub>(*z* = 0)=*O*<sub>2, *b**o**t**t**o**m*</sub>
+    *O*<sub>2</sub>|<sub>*z* = 0</sub> = *O*<sub>2, *b**o**t**t**o**m*</sub>
 -   nul gradient at the lower cell
-    $$ \\frac{\\partial O\_2}{\\partial z}|\_{(z=sediment~bottom)}=0$$
+    $$ \\frac{\\partial O\_2}{\\partial z}|\_{z=deep}=0$$
 
 ``` r
 O2model <- function (t, O2, p) {
@@ -72,7 +72,7 @@ parms <- c(
 Simulation
 ==========
 
-Let us now compute the steady state solutions for three set of parameters (multiplying the respiration rate) and plot the ouputs.
+Let us now compute the steady state solutions for three set of parameters (considering different respiration rates) and plot the ouputs.
 
 ``` r
 parms2 <- parms3 <- parms
@@ -92,34 +92,54 @@ plot(out, out2, out3, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$
 
 <img src="Diagenesis_O_files/figure-markdown_github/runs-1.png" style="display: block; margin: auto;" />
 
-<table style="width:26%;">
-<colgroup>
-<col width="26%" />
-</colgroup>
-<tbody>
-<tr class="odd">
-<td align="left"># Specific Outputs So far the variable ´out´ contains the steady-state solution and the diagnostic ´O2cons´</td>
-</tr>
-<tr class="even">
-<td align="left"><code>r str(out)</code></td>
-</tr>
-<tr class="odd">
-<td align="left"><code>## List of 2 ##  $ y     : num [1:100, 1] 300 299 299 298 298 ... ##   ..- attr(*, &quot;dimnames&quot;)=List of 2 ##   .. ..$ : NULL ##   .. ..$ : chr &quot;O2&quot; ##  $ O2cons: num [1:100] 1 1 1 1 1 1 1 1 1 1 ... ##  - attr(*, &quot;precis&quot;)= num [1:3] 6.57e+02 5.10e-03 4.93e-09 ##  - attr(*, &quot;steady&quot;)= logi TRUE ##  - attr(*, &quot;class&quot;)= chr [1:3] &quot;steady1D&quot; &quot;rootSolve&quot; &quot;list&quot; ##  - attr(*, &quot;dimens&quot;)= num 100 ##  - attr(*, &quot;nspec&quot;)= num 1 ##  - attr(*, &quot;ynames&quot;)= chr &quot;O2&quot;</code> The model declaration is modified to add a diagnostic : the oxygen flux at the sediment-water interface ´O2flux´.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>r O2model &lt;- function (t, O2, p) { with (as.list(p), { O2tran &lt;- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid) O2cons &lt;- minrate*(grid$x.mid &lt; mindepth) list(O2tran$dC - O2cons, O2cons = O2cons,O2flux=O2tran$flux.up) }) }</code></td>
-</tr>
-<tr class="odd">
-<td align="left">```r out &lt;- steady.1D(y = IC, parms = parms, func = O2model, nspec = 1, names = &quot;O2&quot;) out2 &lt;- steady.1D(y = IC, parms = parms2, func = O2model, nspec = 1, names = &quot;O2&quot;) out3 &lt;- steady.1D(y = IC, parms = parms3, func = O2model, nspec = 1, names = &quot;O2&quot;)</td>
-</tr>
-<tr class="even">
-<td align="left">plot(x = c(parms[&quot;minrate&quot;] , parms2[&quot;minrate&quot;] , parms3[&quot;minrate&quot;]), y = c(out<span class="math inline"><em>O</em>2<em>f</em><em>l</em><em>u</em><em>x</em>, <em>o</em><em>u</em><em>t</em>2</span>O2flux, out3$O2flux), xlab=&quot;Mineralization rate - [nmol O2/cm3/d]&quot; , ylab=&quot;Oxygen Flux @ SWI - [nmol/cm2/d]&quot;) ```</td>
-</tr>
-<tr class="odd">
-<td align="left"><img src="Diagenesis_O_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /> At steady-state, the flux at the interface equals the total amount of oxygen consumed in the sediment. Here, consumption takes place only in the liquid, so we have to consider porosity in the integral. <br /><span class="math display">$$ \int\limits_\infty^0 \mathbf{\phi} \gamma  ~ dz =\phi  \gamma_0 L $$</span><br /></td>
-</tr>
-</tbody>
-</table>
+------------------------------------------------------------------------
+
+Specific Outputs
+================
+
+So far the variable ´out´ contains the steady-state solution and the diagnostic ´O2cons´
+
+``` r
+str(out)
+```
+
+    ## List of 2
+    ##  $ y     : num [1:100, 1] 300 299 299 298 298 ...
+    ##   ..- attr(*, "dimnames")=List of 2
+    ##   .. ..$ : NULL
+    ##   .. ..$ : chr "O2"
+    ##  $ O2cons: num [1:100] 1 1 1 1 1 1 1 1 1 1 ...
+    ##  - attr(*, "precis")= num [1:3] 6.51e+02 5.03e-03 2.13e-09
+    ##  - attr(*, "steady")= logi TRUE
+    ##  - attr(*, "class")= chr [1:3] "steady1D" "rootSolve" "list"
+    ##  - attr(*, "dimens")= num 100
+    ##  - attr(*, "nspec")= num 1
+    ##  - attr(*, "ynames")= chr "O2"
+
+The model declaration is modified to add a diagnostic : the oxygen flux at the sediment-water interface ´O2flux´.
+
+``` r
+O2model <- function (t, O2, p) {
+  with (as.list(p), {
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid)
+    O2cons <- minrate*(grid$x.mid < mindepth)    
+    list(O2tran$dC - O2cons, O2cons = O2cons,O2flux=O2tran$flux.up)
+  })
+}
+```
+
+``` r
+out  <- steady.1D(y = IC, parms = parms, func = O2model, nspec = 1, names = "O2")
+out2 <- steady.1D(y = IC, parms = parms2, func = O2model, nspec = 1, names = "O2")
+out3 <- steady.1D(y = IC, parms = parms3, func = O2model, nspec = 1, names = "O2")
+
+plot(x = c(parms["minrate"] , parms2["minrate"] , parms3["minrate"]), y = c(out$O2flux , out2$O2flux, out3$O2flux),
+     xlab="Mineralization rate - [nmol O2/cm3/d]" , ylab="Oxygen Flux @ SWI - [nmol/cm2/d]")
+```
+
+<img src="Diagenesis_O_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /> At steady-state, the flux at the interface equals the total amount of oxygen consumed in the sediment. Here, consumption takes place only in the liquid, so we have to consider porosity in the integral.
+$$ \\int\\limits\_\\infty^0 \\mathbf{\\phi} \\gamma  ~ dz =\\phi  \\gamma\_0 L $$
+ -------------------
 
 SensRange
 =========
@@ -173,12 +193,12 @@ Exercices
 =========
 
 1. Explore the range of model response to variations of other parameters
-========================================================================
+------------------------------------------------------------------------
 
-*Hint* : Just adapt parRange in the upper code.
+*Hint* : Just adapt parRange in the upper code. [Start Here](Diagenesis_O_Ex1.Rmd)
 
 2. Read measured data (Flux and/or Profiles), include them to the plot
-======================================================================
+----------------------------------------------------------------------
 
 *Hint* : use read.table to read the data. Add them to the previous plot using ´line´ and ´points´
 
