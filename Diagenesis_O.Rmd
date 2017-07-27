@@ -110,6 +110,7 @@ plot(x = c(parms["minrate"] , parms2["minrate"] , parms3["minrate"]), y = c(out$
      xlab="Mineralization rate - [nmol O2/cm3/d]" , ylab="Oxygen Flux @ SWI - [nmol/cm2/d]")
 
 ```
+
 At steady-state, the flux at the interface equals the total amount of oxygen consumed in the sediment.
 Here, consumption takes place only in the liquid, so we have to consider porosity in the integral.
 $$ \int\limits_\infty^0 \mathbf{\phi} \gamma  ~ dz =\phi  \gamma_0 L $$

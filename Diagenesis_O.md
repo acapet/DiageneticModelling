@@ -109,7 +109,7 @@ str(out)
     ##   .. ..$ : NULL
     ##   .. ..$ : chr "O2"
     ##  $ O2cons: num [1:100] 1 1 1 1 1 1 1 1 1 1 ...
-    ##  - attr(*, "precis")= num [1:3] 6.51e+02 5.03e-03 2.13e-09
+    ##  - attr(*, "precis")= num [1:3] 6.51e+02 5.08e-03 3.98e-09
     ##  - attr(*, "steady")= logi TRUE
     ##  - attr(*, "class")= chr [1:3] "steady1D" "rootSolve" "list"
     ##  - attr(*, "dimens")= num 100
@@ -137,7 +137,9 @@ plot(x = c(parms["minrate"] , parms2["minrate"] , parms3["minrate"]), y = c(out$
      xlab="Mineralization rate - [nmol O2/cm3/d]" , ylab="Oxygen Flux @ SWI - [nmol/cm2/d]")
 ```
 
-<img src="Diagenesis_O_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /> At steady-state, the flux at the interface equals the total amount of oxygen consumed in the sediment. Here, consumption takes place only in the liquid, so we have to consider porosity in the integral.
+<img src="Diagenesis_O_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+
+At steady-state, the flux at the interface equals the total amount of oxygen consumed in the sediment. Here, consumption takes place only in the liquid, so we have to consider porosity in the integral.
 $$ \\int\\limits\_\\infty^0 \\mathbf{\\phi} \\gamma  ~ dz =\\phi  \\gamma\_0 L $$
  -------------------
 
