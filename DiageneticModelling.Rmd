@@ -128,7 +128,8 @@ plot(out, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$x.mid)
 
 ! WHEN YOU'RE DONE ! Execute the following code chunks in Rstudio, to explore interactively the role of each parameter. 
 
-( you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` )
+( PS: you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` )
+( PS2: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/DiageneticModelling/) )
 ```{r, eval=FALSE}
 library(shiny)
 runApp('Shiny_ODia.R')
@@ -253,6 +254,7 @@ plot(DefaultRun,xyswap=T, grid=grid$x.mid)
 ```
 
 For an interactive version, execute the following code chunks in Rstudio. 
+( PS: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/) )
 ```{r, eval=FALSE}
 library(shiny)
 runApp('Shiny_ODia2.R')
@@ -286,6 +288,7 @@ $$
 
 
 For an interactive version, execute the following code chunks in Rstudio. 
+https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/
 ```{r, eval=FALSE}
 library(shiny)
 runApp('Shiny_ODia3.R')
@@ -396,7 +399,7 @@ DefaultRun  <- steady.1D(y = IC, parms = parms, func = TOCmodel, nspec = 3, name
 plot(DefaultRun,xyswap=T,grid=grid$x.mid)
 ```
 
-Interactive version: 
+[Interactive version:](https://acapet.shinyapps.io/diageneticmodelling_oxygen_sulphide_bioirrigation_orgc/)
 
 ```{r, eval=FALSE}
 library(shiny)
