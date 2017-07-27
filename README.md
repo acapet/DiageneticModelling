@@ -2,4 +2,4 @@
 
 Lecture on Diagenetic Modelling using R. 
 
-Start with (DiagenticModelling.md)
+Start with [this practical session description](DiageneticModelling.md)
