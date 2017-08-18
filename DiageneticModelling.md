@@ -61,7 +61,7 @@ O2model <- function (t, O2, p) {
     dO2<-O2tran$dC - O2cons
     # The model function returns the time derivatives as first argument.
     # The next arguments in the list are diagnostics that can be used for later visualisation.
-    return( list(dO2, O2cons = O2cons) ) 
+    return( list(dO2) ) 
   })
 }
 ```
@@ -115,7 +115,7 @@ Exercise
 
 **Q** Add the oxygen flux at the sediment-water interface as another diagnostic value to the list returned by the `O2model` (in addition to the time derivatives). The value can be found from the list returned by the function `tran.1D`: `O2tran$flux.up`.
 
-**Q**: Explore how the the oxygen profile and the oxygen flux at the sediment water interface at steady state varies when a parameter is modified.
+**Q**: Explore how the the oxygen profile and the oxygen flux at the sediment water interface at steady state vary when a parameter is modified.
 
 ``` r
 #Redefine the model function 'O2model' with an additional diagnostic (O2flux=..) in the list returned at the end of the function.
@@ -133,7 +133,7 @@ Exercise
 
 ! WHEN YOU'RE DONE ! Execute the following code chunks in Rstudio, to explore interactively the role of each parameter.
 
-( PS: you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` ) ( PS2: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/DiageneticModelling/) )
+( PS: you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` ) ( PS2: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/diageneticmodelling__simple_oxygen_diffusion/) )
 
 ``` r
 library(shiny)
