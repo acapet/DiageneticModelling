@@ -1,5 +1,5 @@
 # DiageneticModelling
 
-Lecture on Diagenetic Modelling using R. 
+A practical session on Diagenetic Modelling using R. 
 
-Start with [this practical session description](DiageneticModelling.md)
+Start [here](DiageneticModelling.md)
