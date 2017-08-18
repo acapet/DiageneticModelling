@@ -254,7 +254,7 @@ plot(DefaultRun,xyswap=T, grid=grid$x.mid)
 ```
 
 For an interactive version, execute the following code chunks in Rstudio. 
-( PS: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/) )
+( or check [here](https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/) )
 ```{r, eval=FALSE}
 library(shiny)
 runApp('Shiny_ODia2.R')
@@ -287,8 +287,9 @@ $$
 ```
 
 
-For an interactive version, execute the following code chunks in Rstudio. 
-https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/
+For an interactive version, execute the following code chunks in Rstudio or check 
+[here](https://acapet.shinyapps.io/diageneticmodelling_o2_h2s_irrig/)
+
 ```{r, eval=FALSE}
 library(shiny)
 runApp('Shiny_ODia3.R')

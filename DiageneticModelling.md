@@ -262,7 +262,7 @@ plot(DefaultRun,xyswap=T, grid=grid$x.mid)
 
 ![](DiageneticModelling_files/figure-markdown_github/unnamed-chunk-6-1.png)
 
-For an interactive version, execute the following code chunks in Rstudio. ( PS: Find a published version of the running Shiny App [here](https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/) )
+For an interactive version, execute the following code chunks in Rstudio. ( or check [here](https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/) )
 
 ``` r
 library(shiny)
@@ -293,7 +293,7 @@ Bioirrigation can be represented in 1D models by allowing non-local exchange, ie
     -   Irrigative flux, computed by integrating the irrigation terms $\\int\\limits\_\\infty^0\\phi(z)\\alpha(z)\[ O\_2(z) - O\_2(0)\]dz$ (*d**z* can be obtained from `grid$dx`)
 -   How much oxygen is consumed by oxic mineralization, and how much for H2S oxidation ? Is that ratio dependent of the irrigation rate ?
 
-For an interactive version, execute the following code chunks in Rstudio. <https://acapet.shinyapps.io/diageneticmodelling__oxygen_and_hydrogen_sulphide/>
+For an interactive version, execute the following code chunks in Rstudio or check [here](https://acapet.shinyapps.io/diageneticmodelling_o2_h2s_irrig/)
 
 ``` r
 library(shiny)
