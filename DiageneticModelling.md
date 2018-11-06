@@ -54,7 +54,7 @@ This model is expressed as a **model function** that receives **current time** (
 O2model <- function (t, O2, p) {
   with (as.list(p), {
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D/(1-log(porosity**2)), VF = porosity, dx = grid)
     # Respiration
     O2cons <- minrate*(grid$x.mid < mindepth)    
     
@@ -74,7 +74,7 @@ parms <- c(
   minrate  = 10     , # nmol O2/cm3/d - oxygen consumption rate
   mindepth = 5      , # cm            - depth below which minrate = 0
   O2BW     = 300    , # nmol/cm3      - bottom water oxygen concentration
-  D        = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)) # cm2/d - molecular diffusion coefficient, corrected for tortuosity
+  D        = as.numeric(diffcoeff(species="O2")*86400*1e4) # cm2/d - molecular diffusion coefficient, corrected for tortuosity
 )
 ```
 
@@ -157,7 +157,7 @@ The main changes are highlighted here:
 -   H2S is a solute variable that is transported similarly to `O2`. So we had to define new parameters:
     -   `DH2S`, the diffusion coefficient, from package marelac.
     -   `H2SBW`, the H2S bottom water concentration.
--   The total respiration term `resp` is the same as we used before, but now only a part is respired with oxygen, while the remaining part produced reduced substances (think of it as if organic matter was oxidised by sulfate, thereby prH2Scing hydrogen sulfide).
+-   The total respiration term `resp` is the same as we used before, but now only a part is respired with oxygen, while the remaining part produces reduced substances (think of it as if organic matter was oxidised by sulfate, thereby producing hydrogen sulfide).
 -   Oxic respiration is limited by oxygen availability. The oxygen consumed for respiration is equal to the total respiration times a limiting function *O*<sub>2</sub>/(*O*<sub>2</sub> + *k*<sub>*O*<sub>2</sub>*l**i**m*</sub>).
 -   The remaining part of `resp` is a source of `H2S`.
 -   In addition, the `H2S` is oxidised (consuming oxygen) when it diffuses in the oxic regions of the sediments. This term can be expressed as *r*<sub>*H*2*S**o**x*</sub>.*H*2*S*.*O*<sub>2</sub>/(*O*<sub>2</sub> + *k*<sub>*O*<sub>2</sub>*H*2*S**o**x*</sub>) (it only occurs when there is oxygen) and is a loss for `H2S` and for `O2`.
@@ -174,7 +174,7 @@ grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
 O2model <- function (t, O2, p) {
   with (as.list(p), {
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D/(1-log(porosity**2)), VF = porosity, dx = grid)
     # Respiration
     resp <- minrate*(grid$x.mid < mindepth)    
     # the function returns the time derivative
@@ -189,7 +189,7 @@ parms <- c(
   minrate  = 10    , # nmol O2/cm3/d - oxygen consumption rate
   mindepth = 5    , # cm            - depth below which minrate = 0
   O2BW     = 300  , # nmol/cm3       - bottom water oxygen concentration
-  D        = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8))     # cm2/d - molecular diffusion coefficient
+  D        = as.numeric(diffcoeff(species="O2")*86400*1e4)     # cm2/d - molecular diffusion coefficient
 )
 
 ICO2<-rep(200,length(grid$x.mid))
@@ -214,8 +214,8 @@ H2Smodel <- function (t, S, p) {
     H2S<-S[101:200]
     
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2, VF = porosity, dx = grid)
-    H2Stran <- tran.1D(C = H2S, C.up = H2SBW, D = DH2S, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2/(1-log(porosity**2)), VF = porosity, dx = grid)
+    H2Stran <- tran.1D(C = H2S, C.up = H2SBW, D = DH2S/(1-log(porosity**2)), VF = porosity, dx = grid)
     
     # Respiration
     resp <- minrate*(grid$x.mid < mindepth)
@@ -238,8 +238,8 @@ parms <- c(
   minrate   = 40     , # nmol O2/cm3/d - oxygen consumption rate
   mindepth  = 5      , # cm            - depth below which minrate = 0
   O2BW      = 300    , # nmol/cm3       - bottom water oxygen concentration
-  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
-  DH2S      = as.numeric(diffcoeff(species="H2S")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
+  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4),  # cm2/d - molecular diffusion coefficient
+  DH2S      = as.numeric(diffcoeff(species="H2S")*86400*1e4), # cm2/d - molecular diffusion coefficient
   H2SBW     = 0      , # nmol/cm3       - bottom water H2S concentration
   kO2lim    = 0.3    , # Oxygen limitation for oxic respiration
   rH2Sox    = 5   , # rate of H2S oxidation

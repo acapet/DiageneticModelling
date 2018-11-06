@@ -5,40 +5,40 @@ require(marelac, quietly = TRUE)  # toolbox for aquatic sciences
 
 grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
 
-ODUmodel <- function (t, S, p) {
+H2Smodel <- function (t, S, p) {
   with (as.list(p), {
     O2<-S[1:100]
-    ODU<-S[101:200]
+    H2S<-S[101:200]
     
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2, VF = porosity, dx = grid)
-    ODUtran <- tran.1D(C = ODU, C.up = ODUBW, D = DODU, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2/(1-log(porosity*porosity)), VF = porosity, dx = grid)
+    H2Stran <- tran.1D(C = H2S, C.up = H2SBW, D = DH2S/(1-log(porosity*porosity)), VF = porosity, dx = grid)
     
     # Respiration
     resp <- minrate*(grid$x.mid < mindepth)
     O2LIM<-O2/(O2+kO2lim)
     
     O2resp  <- resp*O2LIM
-    ODUprod <- resp-O2resp
+    H2Sprod <- resp-O2resp
     
-    # ODU oxidation
-    OduOx<-rODUox*ODU*O2/(O2+ksO2oduox)
+    # H2S oxidation
+    H2SOx<-rH2Sox*H2S*O2/(O2+ksO2H2Sox)
     
     #Irrigation 
     alpha<-alpha0*(grid$x.mid < irrigdepth)
     O2irrig  <- - alpha * (O2-O2BW)
-    ODUirrig <- - alpha * (ODU-ODUBW)
+    H2Sirrig <- - alpha * (H2S-H2SBW)
     
-    dO2  <-  O2tran$dC - O2resp  - OduOx + O2irrig
-    dODU <-  ODUtran$dC + ODUprod - OduOx +ODUirrig
+    dO2  <-  O2tran$dC - O2resp  - H2SOx + O2irrig
+    dH2S <-  H2Stran$dC + H2Sprod - H2SOx +H2Sirrig
     
-    return( list(cbind(dO2,dODU),
-                 OduOx=OduOx,
+    return( list(cbind(dO2,dH2S),
+                 H2SOx=H2SOx,
                  O2resp = O2resp,
                  O2flux = O2tran$flux.up,
-                 ODUflux = ODUtran$flux.up,
+                 H2Sflux = H2Stran$flux.up,
                  O2irrigflux = sum(porosity*O2irrig*grid$dx),
-                 ODUirrigflux = sum(porosity*ODUirrig*grid$dx),
+                 H2Sirrigflux = sum(porosity*H2Sirrig*grid$dx),
                  Resp=sum(resp*porosity*grid$dx)) ) 
 		  
   })
@@ -46,29 +46,29 @@ ODUmodel <- function (t, S, p) {
 
 parms <- c(
   porosity  = 0.8    , # -
-  minrate   = 30     , # nmol O2/cm3/d - oxygen consumption rate
+  minrate   = 40     , # nmol O2/cm3/d - oxygen consumption rate
   mindepth  = 5      , # cm            - depth below which minrate = 0
   O2BW      = 300    , # nmol/cm3       - bottom water oxygen concentration
-  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
-  DODU      = as.numeric(diffcoeff(species="H2S")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
-  ODUBW     = 0      , # nmol/cm3       - bottom water ODU concentration
+  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4),     # cm2/d - molecular diffusion coefficient
+  DH2S      = as.numeric(diffcoeff(species="H2S")*86400*1e4),     # cm2/d - molecular diffusion coefficient
+  H2SBW     = 0      , # nmol/cm3       - bottom water H2S concentration
   kO2lim    = .3     , # Oxygen limitation for oxic respiration
-  rODUox    = 5      , # rate of ODU oxidation
-  ksO2oduox = 10     , # Oxygen limitation for ODU oxidation 
-  alpha0    = 8      , # Irrigation coefficient
+  rH2Sox    = 5      , # rate of H2S oxidation
+  ksO2H2Sox = 10     , # Oxygen limitation for H2S oxidation 
+  alpha0    = 0      , # Irrigation coefficient
   irrigdepth    = 3       # Irrigation Depth
 )
 
 ICO2 <- rep.int(c(300),length(grid$x.mid))
-ICODU <- rep.int(c(1),length(grid$x.mid))
+ICH2S <- rep.int(c(1),length(grid$x.mid))
 
-IC<-cbind(ICO2,ICODU)
+IC<-cbind(ICO2,ICH2S)
 
 # computes the steady-state solution
-DefaultRun  <- ode.1D(times=seq(0,100,.1),y = IC, parms = parms, func = ODUmodel, nspec = 2, names = c("O2","ODU"))
-image(DefaultRun,legend = T,ylim=c(10,0),grid = grid$x.mid)
+#DefaultRun  <- ode.1D(times=seq(0,100,.1),y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"))
+#image(DefaultRun,legend = T,ylim=c(10,0),grid = grid$x.mid)
 
-DefaultRun  <- steady.1D(y = IC, parms = parms, func = ODUmodel, nspec = 2, names = c("O2","ODU"))
+DefaultRun  <- steady.1D(y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"),pos=T)
 plot(DefaultRun,xyswap=T)
 
 
@@ -89,76 +89,76 @@ server <- function(input, output,session) {
                mindepth=input$mindepth,
                O2BW=input$O2BW,
                DO2 = parms[["DO2"]],
-               DODU      = parms[["DODU"]]      , # cm2/d - molecular diffusion coefficient
-               ODUBW     = parms[["ODUBW"]]     , # nmol/cm3       - bottom water ODU concentration
+               DH2S      = parms[["DH2S"]]      , # cm2/d - molecular diffusion coefficient
+               H2SBW     = parms[["H2SBW"]]     , # nmol/cm3       - bottom water H2S concentration
                kO2lim    = parms[["kO2lim"]]    , # Oxygen limitation for oxic respiration
-               rODUox    = parms[["rODUox"]]    , # rate of ODU oxidation
-               ksO2oduox = parms[["ksO2oduox"]] , # Oxygen limitation for ODU oxidation 
+               rH2Sox    = parms[["rH2Sox"]]    , # rate of H2S oxidation
+               ksO2H2Sox = parms[["ksO2H2Sox"]] , # Oxygen limitation for H2S oxidation 
                alpha0    = input$alpha0,
                irrigdepth    = input$irrigdepth
     )
     # computes the steady-state solution
-    out  <- steady.1D(y = IC, parms = Parms, func = ODUmodel, nspec = 2, names = c("O2","ODU"),pos=T)
+    out  <- steady.1D(y = IC, parms = Parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"),pos=T)
     
     if (input$default) {
-      plot(out, DefaultRun , which=c('O2','ODU','O2resp','OduOx'),
+      plot(out, DefaultRun , which=c('O2','H2S','O2resp','H2SOx'),
            xyswap = TRUE, xlab = c("mmol/m3","mmol/m3","mmol/m3/d","mmol/m3/d"),
            ylab = "cm", grid = grid$x.mid)
       legend("bottomright", col = 1:2, legend = c("current", "default"), lty = 1:2)
     } else  
-      plot(out, which=c('O2','ODU','O2resp','OduOx'),
+      plot(out, which=c('O2','H2S','O2resp','H2SOx'),
            xyswap = TRUE, xlab =  c("mmol/m3","mmol/m3","mmol/m3/d","mmol/m3/d"),
            ylab = "cm", grid = grid$x.mid)
   })
   
   output$table <- renderTable({
-    IC <- cbind(rep.int(200,length(grid$x.mid)),rep.int(2,length(grid$x.mid)))
+    IC <- cbind(rep.int(300,length(grid$x.mid)),rep.int(1,length(grid$x.mid)))
     Parms <- c(porosity=input$porosity,
                minrate=input$minrate,
                mindepth=input$mindepth,
                O2BW=input$O2BW,
                DO2 = parms[["DO2"]],
-               DODU      = parms[["DODU"]]      ,     # cm2/d - molecular diffusion coefficient
-               ODUBW     = parms[["ODUBW"]]      , # nmol/cm3       - bottom water ODU concentration
+               DH2S      = parms[["DH2S"]]      ,     # cm2/d - molecular diffusion coefficient
+               H2SBW     = parms[["H2SBW"]]      , # nmol/cm3       - bottom water H2S concentration
                kO2lim    = parms[["kO2lim"]]    , # Oxygen limitation for oxic respiration
-               rODUox    = parms[["rODUox"]]    , # rate of ODU oxidation
-               ksO2oduox = parms[["ksO2oduox"]] , # Oxygen limitation for ODU oxidation 
+               rH2Sox    = parms[["rH2Sox"]]    , # rate of H2S oxidation
+               ksO2H2Sox = parms[["ksO2H2Sox"]] , # Oxygen limitation for H2S oxidation 
                alpha0    = input$alpha0,
-               irrigdepth    = input$irrigdepth      # Oxygen limitation for ODU oxidation 
+               irrigdepth    = input$irrigdepth      # Oxygen limitation for H2S oxidation 
     )
     # computes the steady-state solution
-    out  <- steady.1D(y = IC, parms = Parms, func = ODUmodel, nspec = 2, names = c("O2","ODU"))
+    out  <- steady.1D(y = IC, parms = Parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"),pos=T)
     
     if (input$default) {
       data.frame("Current"=c(out$O2flux,
-                             out$ODUflux,
+                             out$H2Sflux,
                              out$O2irrigflux,
-                             out$ODUirrigflux,
-                             sum(c(out$O2flux,-out$ODUflux,out$O2irrigflux,-out$ODUirrigflux)),
+                             out$H2Sirrigflux,
+                             sum(c(out$O2flux,-out$H2Sflux,out$O2irrigflux,-out$H2Sirrigflux)),
                              out$Resp),
                  "Default"=c(DefaultRun$O2flux,
-                             DefaultRun$ODUflux,
+                             DefaultRun$H2Sflux,
                              DefaultRun$O2irrigflux,
-                             DefaultRun$ODUirrigflux,
-                             sum(c(DefaultRun$O2flux,-DefaultRun$ODUflux,DefaultRun$O2irrigflux,-DefaultRun$ODUirrigflux)),
+                             DefaultRun$H2Sirrigflux,
+                             sum(c(DefaultRun$O2flux,-DefaultRun$H2Sflux,DefaultRun$O2irrigflux,-DefaultRun$H2Sirrigflux)),
                              DefaultRun$Resp),
                  row.names = c("O2 diffusive Flux [nmol/cm2/d]",
-                               "ODU diffusive Flux [nmol/cm2/d]",
+                               "H2S diffusive Flux [nmol/cm2/d]",
                                "O2 irrigative Flux [nmol/cm2/d]",
-                               "ODU irrigative Flux [nmol/cm2/d]",
+                               "H2S irrigative Flux [nmol/cm2/d]",
                                "sum",
                                "Total Respiration"))
     } else
-      data.frame("Current"=c(out$O2flux,out$ODUflux,out$O2irrigflux,out$ODUirrigflux),
+      data.frame("Current"=c(out$O2flux,out$H2Sflux,out$O2irrigflux,out$H2Sirrigflux),
                  row.names = c("O2 diffusive Flux [nmol/cm2/d]",
-                               "ODU diffusive Flux [nmol/cm2/d]",
+                               "H2S diffusive Flux [nmol/cm2/d]",
                                "O2 irrigative Flux [nmol/cm2/d]",
-                               "ODU irrigative Flux [nmol/cm2/d]"))
+                               "H2S irrigative Flux [nmol/cm2/d]"))
     },include.rownames=T)
 }
 
 ui <- fluidPage(
-  headerPanel("O2 + ODU + irrigation model"),
+  headerPanel("O2 + H2S + irrigation model"),
   sidebarLayout(
     sidebarPanel(
       h3("Parameters"),
@@ -171,7 +171,7 @@ ui <- fluidPage(
       sliderInput("O2BW", label = "O2BW",
                   min = 0, max = 600, value = parms["O2BW"], step = 10, width=100),
       sliderInput("alpha0", label = "alpha0 - [d]",
-                  min = 0, max = 50, value = parms["alpha0"], step = .5, width=100),
+                  min = 0, max = 10, value = parms["alpha0"], step = .1, width=100),
       sliderInput("irrigdepth", label = "irrigdepth - [cm]",
                   min = 0, max = 7, value = parms["irrigdepth"], step = .5, width=100),
       checkboxInput(inputId = "default",

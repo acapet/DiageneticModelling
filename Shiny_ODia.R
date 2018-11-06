@@ -8,7 +8,7 @@ grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
 O2model <- function (t, O2, p) {
   with (as.list(p), {
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D/(1-log(porosity**2)), VF = porosity, dx = grid)
     # Respiration
     O2cons <- minrate*(grid$x.mid < mindepth)    
     # the function returns the time derivative
@@ -35,15 +35,16 @@ DefaultRun  <- steady.1D(y = IC, parms = parms, func = O2model, nspec = 1, names
 server <- function(input, output,session) {
   observeEvent(input$resetButton, {
     updateNumericInput(session, "porosity", value = 0.8)
-    updateNumericInput(session, "minrate", value = 10)
+    updateNumericInput(session, "minrate" , value = 10)
     updateNumericInput(session, "mindepth", value = 5)
-    updateNumericInput(session, "O2BW", value = 300)
+    updateNumericInput(session, "O2BW"    , value = 300)
+    updateNumericInput(session, "D"       , value = as.numeric(diffcoeff(species="O2")*86400*1e4))
   })
   
   output$model <- renderPlot({
     IC <- rep.int(200,length(grid$x.mid))
     Parms <- c(porosity=input$porosity, minrate=input$minrate,
-                 mindepth=input$mindepth, O2BW=input$O2BW, D = parms[["D"]])
+                 mindepth=input$mindepth, O2BW=input$O2BW, D = input$D)
     # computes the steady-state solution
     out  <- steady.1D(y = IC, parms = Parms, func = O2model, nspec = 1, names = "O2")
     
@@ -57,7 +58,7 @@ server <- function(input, output,session) {
   output$table <- renderTable({
     IC <- rep.int(200,length(grid$x.mid))
     Parms <- c(porosity=input$porosity, minrate=input$minrate,
-               mindepth=input$mindepth, O2BW=input$O2BW, D = parms[["D"]])
+               mindepth=input$mindepth, O2BW=input$O2BW, D = input$D)
     # computes the steady-state solution
     out  <- steady.1D(y = IC, parms = Parms, func = O2model, nspec = 1, names = "O2")
     
@@ -86,6 +87,8 @@ ui <- fluidPage(
                    min = 0.1, max = 10, value = parms["mindepth"], step = 0.1, width=100),
       sliderInput("O2BW", label = "O2BW",
                   min = 0, max = 600, value = parms["O2BW"], step = 10, width=100),
+      sliderInput("D", label = "D",
+                  min = 0.5, max = 2.5, value = parms["D"], step = 0.05, width=100),
       checkboxInput(inputId = "default",
                     label = strong("Add default run"),
                     value = TRUE),

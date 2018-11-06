@@ -11,8 +11,8 @@ H2Smodel <- function (t, S, p) {
     H2S<-S[101:200]
     
     # Transport term (using ReacTran routines)
-    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2, VF = porosity, dx = grid)
-    H2Stran <- tran.1D(C = H2S, C.up = H2SBW, D = DH2S, VF = porosity, dx = grid)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2/(1-log(porosity**2)), VF = porosity, dx = grid)
+    H2Stran <- tran.1D(C = H2S, C.up = H2SBW, D = DH2S/(1-log(porosity**2)), VF = porosity, dx = grid)
     
     # Respiration
     resp <- minrate*(grid$x.mid < mindepth)
@@ -37,11 +37,11 @@ H2Smodel <- function (t, S, p) {
 
 parms <- c(
   porosity  = 0.8    , # -
-  minrate   = 30     , # nmol O2/cm3/d - oxygen consumption rate
+  minrate   = 40     , # nmol O2/cm3/d - oxygen consumption rate
   mindepth  = 5      , # cm            - depth below which minrate = 0
   O2BW      = 300    , # nmol/cm3       - bottom water oxygen concentration
-  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
-  DH2S      = as.numeric(diffcoeff(species="H2S")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
+  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4),     # cm2/d - molecular diffusion coefficient
+  DH2S      = as.numeric(diffcoeff(species="H2S")*86400*1e4),     # cm2/d - molecular diffusion coefficient
   H2SBW     = 0      , # nmol/cm3       - bottom water H2S concentration
   kO2lim    = .3     , # Oxygen limitation for oxic respiration
   rH2Sox    = 5   , # rate of H2S oxidation
@@ -54,11 +54,11 @@ ICH2S <- rep.int(c(1),length(grid$x.mid))
 IC<-cbind(ICO2,ICH2S)
 
 # computes the steady-state solution
-DefaultRun  <- ode.1D(times=seq(0,100,.1),y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"))
-image(DefaultRun,legend = T,ylim=c(10,0),grid = grid$x.mid)
+#DefaultRun  <- ode.1D(times=seq(0,100,.1),y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"))
+#image(DefaultRun,legend = T,ylim=c(10,0),grid = grid$x.mid)
 
-DefaultRun  <- steady.1D(y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"))
-plot(DefaultRun,xyswap=T)
+DefaultRun  <- steady.1D(y = IC, parms = parms, func = H2Smodel, nspec = 2, names = c("O2","H2S"), pos=TRUE)
+plot(DefaultRun,xyswap=T, grid=grid$x.mid)
 
 
 server <- function(input, output,session) {
@@ -97,12 +97,12 @@ server <- function(input, output,session) {
   })
   
   output$table <- renderTable({
-    IC <- cbind(rep.int(200,length(grid$x.mid)),rep.int(2,length(grid$x.mid)))
-    Parms <- c(porosity=input$porosity,
-               minrate=input$minrate,
-               mindepth=input$mindepth,
-               O2BW=input$O2BW,
-               DO2 = parms[["DO2"]],
+    IC <- cbind(rep.int(300,length(grid$x.mid)),rep.int(1,length(grid$x.mid)))
+    Parms <- c(porosity  = input$porosity,
+               minrate   = input$minrate,
+               mindepth  = input$mindepth,
+               O2BW      = input$O2BW,
+               DO2       = parms[["DO2"]],
                DH2S      = parms[["DH2S"]]      ,     # cm2/d - molecular diffusion coefficient
                H2SBW     = parms[["H2SBW"]]      , # nmol/cm3       - bottom water H2S concentration
                kO2lim    = parms[["kO2lim"]]    , # Oxygen limitation for oxic respiration
