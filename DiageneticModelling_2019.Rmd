@@ -1,0 +1,540 @@
+---
+title: "Oxygen in porous non-permeable sediments"
+author: "Arthur Capet, Marilaure Grégoire, Karline Soetaert"
+date: "July 2019"
+output:
+#  html_document: default
+#  pdf_document: default
+#  slidy_presentation: default
+  github_document :
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Set-up
+We start with a simple diffusive model for oxygen, considering a constant respiration rate above a certain depth.
+
+For this we need
+
+### 1. Libraries
+```{r}
+require(ReacTran, quietly = TRUE) # Reaction-Transport models in aquatic systems 
+require(marelac, quietly = TRUE)  # toolbox for aquatic sciences
+```
+
+### 2. Grid
+We define a vertical 1D grid with 100 levels over 10cm. It is good to have finer spatial resolution in the upper cells, where steeper gradients occur.
+```{r grid}
+grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
+plot(grid$x.mid)
+```
+
+### 3. Model
+
+The unique **state variable** is $O_2(z,t)$, the oxygen concentration in pore waters, given in $\mathrm{mmol~m^{-3}_{liquid}}$.
+We consider **diffusion** and constant **respiration** above a certain depth. 
+$$\frac{\partial O_2(z)}{\partial t}=\frac{\partial O_2(z)}{\partial t}|_{transport}+\frac{\partial O_2(z)}{\partial t}|_{consumption}$$
+
+
+$$ \frac{\partial O_2(z)}{\partial t} = \frac{\partial}{\partial z}[ D \frac{\partial C}{\partial z }]  - \gamma (z) $$
+For boundary conditions, we impose :
+
+* constant concentration at the sediment-water interface
+$$ O_2|_{z=0} = O_{2, BW} $$
+* nul gradient at the lower cell 
+$$\frac{\partial O_2}{\partial z}|_{z=\mathrm{deepest cell}}=0$$
+
+This model is expressed as a **model function** that receives **current time** (t), **current state** (O2) and **parameters** (p) and returns **time derivatives**.   
+```{r model}
+O2model <- function (t, O2, p) {
+  with (as.list(p), {
+    # Transport term (using ReacTran routines)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = D, VF = porosity, dx = grid)
+    # Respiration
+    O2cons <- minrate*(O2/(O2+ks))    
+    
+    dO2<-O2tran$dC - O2cons
+    # The model function returns the time derivatives as first argument.
+    # The next arguments in the list are diagnostics that can be used for later visualisation.
+    return( list(dO2, O2cons = O2cons) ) 
+  })
+}
+```
+
+### 4. Parameters
+```{r parameters}
+parms <- c(
+  porosity = 0.8    , # -
+  minrate  = 1000   , # mmol/m3/d - oxygen consumption rate
+  O2BW     = 300    , # mmol/m3      - bottom water oxygen concentration
+  ks       = 1      , # mmol O2/m3 - Half saturation constant
+  D        = as.numeric(diffcoeff(species="O2", S=35.7, t=24)*86400*1e4)/(1-log(0.8*0.8)) # cm2/d - molecular diffusion coefficient, corrected for tortuosity
+)
+```
+
+# Simulation
+To solve the model and plot the ouput we first need to define initial conditions.
+Then, we'll use the package `deSolve` to solve the model differential equations. 
+For a dynamic solution (resolving the system evolution with time) we use the function `ode`.
+This function requires the time steps `times` at which we'll compute the new model states.
+We also specify that we model one species (*nspec*), and give a name to this species (*names*). 
+
+```{r runs, fig.width=5, fig.height = 5,fig.align="center"}
+# Define initial conditions
+IC <- rep(200, times = length(grid$x.mid))
+
+# computes the dynamical solution for `parms`
+out  <- ode.1D(times=seq(0,10,.1),
+               y = IC,
+               parms = parms,
+               func = O2model,
+               nspec = 1,
+               names = "O2")
+
+# plot the output
+image(out, ylim=c(3,0), grid=grid$x.mid, legend=TRUE, ylab="Sediment Depth - [cm]")
+```
+
+The system converges towards an equilibrium solution.
+
+Instead of computing the full dynamical evolution of the system, from the initial conditions until it reaches the steady state, it is possible to compute directly the steady-state solutions. 
+The problem is to find $C$ such that $\frac{\partial C}{\partial t}=0$.
+For this, the package `rootSolve` provides a function answering our needs : `steady.1D`.
+
+```{r , fig.width=5, fig.height = 5,fig.align="center"}
+# computes the steady-state solution
+out  <- steady.1D(y = IC, parms = parms, func = O2model, nspec = 1, names = "O2", pos=TRUE)
+plot(out, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$x.mid)
+```
+
+---
+
+# Exercise 1
+****  Add the oxygen flux at the sediment-water interface as another diagnostic value to the list returned by the `O2model` (in addition to the time derivatives). The value can be found from the list returned by the function `tran.1D`:  `O2tran$flux.up`.
+
+
+**Q**: Explore how the oxygen profile and the oxygen flux at the sediment water interface at steady state varies when a parameter is modified.
+
+
+```{r}
+#Redefine the model function 'O2model' with an additional diagnostic (O2flux=..) in the list returned at the end of the function.
+
+#Recompute the model solution, and check the value of the O2 flux at the interface. 
+
+#Create a new vector with new parameter values: `parms2`
+
+#Compute the new steady-state solution : out2
+
+#Plot both solution on a graph   ( use `plot(out,out2,...) `)
+
+#Compare the fluxes from out and out2
+
+```
+
+! WHEN YOU'RE DONE ! Execute the following code chunks in Rstudio, to explore interactively the role of each parameter. 
+
+( you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` )
+```{r, eval=FALSE}
+library(shiny)
+runApp('Shiny_ODia.R')
+```
+
+---
+
+# Infering parameters and diagnostics from observations 
+
+Based on a number of assumptions : 
+
+* The oxygen profile can be considered to be at steady state. 
+* Diffusion is the only relevant transport process.
+
+We can consider that the flux at the interface is directly related to the vertical profile of oxygen. 
+
+This means that the shape of the oxygen profile can be used to infer the flux at the interface. 
+
+Data have been stored in a .csv file. 
+
+```{r}
+filename='O2mud1.csv'  #  'O2mud1.csv' 
+O2data<-read.csv(filename)
+plot( x = O2data$O2,y=O2data$depth, ylab='Depth - µm', xlab='[O2] - mmol/m3')
+lines(x=c(-50,250),y=c(0,0))
+```
+
+First, we need to convert the depth unit, and adapt the depth of the SWI.
+
+```{r}
+O2data$depth <- -(O2data$depth-100)/10000
+```
+
+```{r}
+plot( x = O2data$O2,y=O2data$depth, ylab='Depth - cm', xlab='[O2] - mmol/m3', ylim=c(1,0))
+lines(x=c(-50,250),y=c(0,0))
+```
+
+
+
+Playing with paramters you can visually attempt to identify paramters that brings the model curve close to the observation. 
+
+## Cost Function
+Still this is very subjective. 
+
+To adjust the parameters we first have to quantify the model misfit, ie. we need a function that receives a set of parameter and returns the residuals (ie, the difference between the measured $O_2$ and those predicted by the diffusion model at the depths of measurements).
+
+
+To compare model outputs with observations, we first have to extract model value at the depth of measurements. 
+One way to charachterize the error then would be to sum the distances between observed and simulated values. 
+
+$$ Error = \sqrt{\sum\limits_{i=1}^{N_{obs}} \left(O_{i} - M_{i} \right)^2}$$ 
+
+```{r}
+O2data$O2model <- approx( x= grid$x.mid,y=out$y[,'O2'],xout = O2data$depth)$y
+
+plot(out, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$x.mid, ylim=c(1,0))
+points(   x = O2data$O2 ,
+          y=O2data$depth,
+          ylab='Depth - cm',
+          xlab='[O2] - mmol/m3',
+          xlim=c(0,400))
+# points( x = O2data$O2model, y=O2data$depth, col='red' )
+for (i in (1:nrow(O2data))){
+  lines(x=c(O2data$O2[i],O2data$O2model[i]),y=c(O2data$depth[i],O2data$depth[i]),lty=3)
+}
+```
+
+```{r}
+# removing observation above sediment interface for which model has no value. 
+O2data <- O2data[which(O2data$depth>0),]
+Error <- sqrt(sum((O2data$O2model-O2data$O2)^2))
+print(Error)
+```
+
+Here's an app that will allow you to try and find the best parameters to render the observations. 
+Obviously, there were some noise in the measurement, so a perfect match is not possible. 
+How low can you bring the error ?
+```{r, eval=FALSE}
+library(shiny)
+runApp('Shiny_ODia_Data.R')
+```
+
+With an objective measure of the model error, we can now automate the calibration procedure. 
+This can be done with the FME package. 
+
+First we need a function that receives a set of parameters as input, and return the corresponding error. 
+```{r}
+ErrorFunction <- function(p) {
+  parmslocal <- parms           # We first copy the initial parameter vector
+  parmslocal[names(p)] <- p
+  out  <- steady.1D(y = IC, parms = parmslocal, func = O2model, nspec = 1, names = "O2", pos=TRUE)
+  O2data$O2model <- approx( x= grid$x.mid,y=out$y[,'O2'],xout = O2data$depth)$y
+  O2data <- O2data[which(O2data$depth>0),]
+  Error <- sqrt(sum((O2data$O2model-O2data$O2)^2))
+  #return(  Error )  
+  return(  O2data$O2model-O2data$O2 )  
+}
+```
+
+We can now use the function `modFit` from the `FME` package to find the set of parameters that minimize the residuals given by `ErrorFunction`.
+
+```{r}
+#First we know that bottom water concentration is equal to saturation value. 
+parms["O2BW"]<- gas_satconc(S = 37.5, t = 24.45, species = "O2") 
+
+# Call the function modFit and store the output in `Fita`
+
+library(FME)
+Fitout <- modFit(f = ErrorFunction,
+               p = parms[c('minrate','ks')],
+               method="Pseudo",
+               lower=c(0,0),
+               upper=c(10e4,20))
+
+```
+
+`Fita` is now an object of the class modFit, which contains a number of attributes, and which can be used as an argument to certain functions as illustrated below 
+
+* `summary` gives statistics on the calibration procedure
+* `coef` returns the value of the best-fitting parameters
+
+```{r}
+# What is the value of the fitted parameters, and the standard error on those parameters ? 
+summary(Fitout)
+
+# How to obtain a vector with the best parameters ? 
+coef(Fitout)
+```
+
+Those functions provides us with errors on the parameters of the model, that originate from the noise on the measurements. 
+The error on the parameters can be used to infer the error on the fluxe estimates. 
+
+```{r}
+FluxatSteadyStatefunction <- function(p) {
+  parmslocal <- parms           # We first copy the initial parameter vector
+  parmslocal[names(p)] <- p
+  out  <- steady.1D(y = IC,
+                    parms = parmslocal,
+                    func = O2model, 
+                    nspec = 1,
+                    names = "O2", 
+                    pos=TRUE)
+
+  O2flux <- sum(out$O2cons*parmslocal['porosity']*grid$dx)/100
+  #return(  Error )  
+  return(  c('O2flux'= O2flux))  
+}
+  
+sr<-summary(Fitout)
+
+minvalues <- coef(Fitout)- sr$par[,2]
+maxvalues <- coef(Fitout)+ sr$par[,2]
+
+parRange <- data.frame( min = pmax(minvalues,0), max = maxvalues)
+
+sensout<- sensRange(func=FluxatSteadyStatefunction,
+        parms   = coef(Fitout),
+        sensvar = 'O2flux',
+        parRange=parRange
+        )
+```
+
+Resulting estimates for the diffusive oxygen flux at the interface is thus `r mean(sensout$O2flux)` +/- `r sd(sensout$O2flux)`
+
+```{r}
+hist(sensout$O2flux, breaks = seq(from=0,to=100,by=1))
+```
+
+
+```{r}
+
+parms[names(coef(Fitout))]<-coef(Fitout)
+
+out  <- steady.1D(y = IC, parms = parms, func = O2model, nspec = 1, names = "O2", pos=TRUE)
+
+O2data$O2model <- approx( x= grid$x.mid,y=out$y[,'O2'],xout = O2data$depth)$y
+
+plot(out, xyswap = TRUE, xlab = "mmol/m3", ylab = "cm", grid = grid$x.mid, ylim=c(1,0))
+points(   x = O2data$O2 ,
+          y=O2data$depth,
+          ylab='Depth - cm',
+          xlab='[O2] - mmol/m3',
+          xlim=c(0,400))
+# points( x = O2data$O2model, y=O2data$depth, col='red' )
+for (i in (1:nrow(O2data))){
+  lines(x=c(O2data$O2[i],O2data$O2model[i]),y=c(O2data$depth[i],O2data$depth[i]),lty=3)
+}
+```
+
+---
+
+# Further Exercise 
+
+Bioirrigation can be represented in 1D models by allowing non-local exchange, ie. by adding a transport term $\alpha (C(z) - C(0))$ by which solutes are exchanged  between any depth $z$ and bottom water, without having to diffuse through near-surface sediments. 
+
+**Q**: Add a biorrigation term to the equations for O2.
+
+* Start by copying the O2 model.
+* Within the model function, create a vector of irrigation rates: $\alpha$. It should have a fixed value $\alpha_0$ (e.g. a parameter `alpha`) above a given depth (e.g. a parameter `irrigdepth`), and 0 below.
+* Add a term  $O2irrig (z)= \alpha(z)[O_2(z) - O_2(0)]$ to the time derivative of $O_2$.
+* Provide the following diagnostics :
+
+      - Diffusive flux, provided from the transport terms. 
+      - Irrigative flux, computed by integrating the irrigation terms $\int\limits_\infty^0\phi(z)\alpha(z)[ O_2(z) - O_2(0)]dz$ ($dz$ can be obtained from `grid$dx`)
+
+```{r}
+
+```
+
+**Variant**
+
+For an interactive version of a similar, execute the following code chunks in Rstudio. 
+Here the respiration rate has been set as constant (not limited by oxygen availability).
+Therefore, whenever oxygen is lacking to support respiration, it was considered that a 'Oxygen Demanding Unit' would be created.
+This represents reduced substances resulting from further redox reactions. 
+```{r, eval=FALSE}
+library(shiny)
+runApp('Shiny_ODia_ODU_Irrig.R')
+```
+---
+
+# O2 + Organic Matter 
+
+Let us now consider more realistic respiration rates by introducing a solid state variable for organic matter.
+
+The equations of the system looks like this : 
+
+* Organic Matter
+
+$$ \frac{\partial TOC(z)}{\partial t} = \underbrace{\frac{\partial}{\partial z}[ D_b \frac{\partial TOC}{\partial z }]}_{bioturbation}  - \underbrace{\gamma(z) TOC}_{resp}$$
+
+* Oxygen
+
+$$ \frac{\partial O_2(z)}{\partial t} = \underbrace{\frac{\partial}{\partial z}[ D_{O_2} \frac{\partial O_2(z)}{\partial z }]}_{diffusion} 
+- \underbrace{\gamma(z) TOC.\frac{1-\phi}{\phi}.\frac{O_2}{O_2+k_{O_2lim}}}_{oxic ~respiration} \\
+- \underbrace{\alpha (O_2(z)-O_2(0))}_{irrigation}$$
+
+
+* For the boundary conditions of the solid fractions we impose `OMflux`: the sedimenting organic matter input.
+
+```{r}
+
+grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
+
+TOCmodel <- function (t, S, p) {
+  with (as.list(p), {
+    O2<-S[1:100]
+    TOC<-S[101:200]
+
+    # Transport term (using ReacTran routines)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2, VF = porosity, dx = grid)
+    TOCtran <- tran.1D(C = TOC, flux.up = OMflux , D = Dbioturb, VF = 1- porosity, dx = grid)
+    
+    # Respiration
+    resp  <- TOC*minrate*(O2/(O2+ks))  # ! per volume of SOLIDS !
+    respL <- resp*(1-porosity)/porosity # ! per volume of LIQUID !
+    
+    #Irrigation 
+    alpha    <- alpha0*(grid$x.mid < irrigdepth)
+    O2irrig  <- - alpha * (O2-O2BW)
+
+    dO2  <-  O2tran$dC - respL  + O2irrig
+    dTOC <-  TOCtran$dC - resp
+  
+    return( list(cbind(dO2,dTOC),
+                 O2resp = respL,
+                 O2flux = O2tran$flux.up/100,
+                 O2irrigflux = sum(porosity*O2irrig*grid$dx)/100,
+                 OrgC=TOC*12*1e-9/2.5*100) # Convert to percent of dry weight.
+            ) 
+  })
+}
+
+parms <- c(
+  porosity  = 0.8    , # -
+  minrate   = 1/100   , # /d - mineralisation rate
+  OMflux    = 1000    , # nmol/cm2/d Flux of Organic Matter
+  O2BW      = 300    , # nmol/cm3       - bottom water oxygen concentration
+  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
+  ks        = 1     , # Oxygen limitation for oxic respiration
+  alpha0    = 0      , # Irrigation coefficient
+  irrigdepth  = 3    , # Irrigation Depth
+  Dbioturb   = 1/365      # cm2/d Bioturbation coeficient
+)
+
+ICO2 <- rep.int(c(300),length(grid$x.mid))
+ICTOC <- rep.int(c(.03),length(grid$x.mid))
+
+IC<-cbind(ICO2,ICTOC)
+
+# computes the steady-state solution
+DefaultRun  <- steady.1D(y = IC, parms = parms, func = TOCmodel, nspec = 2, names = c("O2","TOC"),pos=T)
+plot(DefaultRun,xyswap=T,grid=grid$x.mid)
+```
+
+Interactive version: 
+
+```{r, eval=FALSE}
+library(shiny)
+runApp('Shiny_ODia_TOC.R')
+```
+
+---
+
+# Exercise 
+
+Q1 : Add a solute variable DIC to the previous model.
+
+```{r}
+
+require(marelac)
+require(ReacTran)
+
+grid <- setup.grid.1D(N = 100, L = 10, dx.1 = 0.01)
+
+TOCDICmodel <- function (t, S, p) {
+  with (as.list(p), {
+    O2<-S[1:100]
+    TOC<-S[101:200]
+    DIC<-S[201:300]
+
+    # Transport term (using ReacTran routines)
+    O2tran <- tran.1D(C = O2, C.up = O2BW, D = DO2, VF = porosity, dx = grid)
+    DICtran <- tran.1D(C = DIC, C.up = DICBW, D = DDIC, VF = porosity, dx = grid)
+    TOCtran <- tran.1D(C = TOC, flux.up = OMflux , D = Dbioturb, VF = 1- porosity, dx = grid)
+    
+    # Respiration
+    resp  <- TOC*minrate*(O2/(O2+ks))  # ! per volume of SOLIDS !
+    respL <- resp*(1-porosity)/porosity # ! per volume of LIQUID !
+    
+    #Irrigation 
+    alpha    <- alpha0*(grid$x.mid < irrigdepth)
+    O2irrig  <- - alpha * (O2-O2BW)
+    DICirrig  <- - alpha * (DIC-DICBW)
+
+    dO2  <-  O2tran$dC - respL  + O2irrig
+    dDIC  <-  DICtran$dC + respL  + DICirrig
+    dTOC <-  TOCtran$dC - resp
+  
+    return( list(cbind(dO2,dTOC,dDIC),
+                 O2resp = respL,
+                 O2flux = O2tran$flux.up/100,
+                 O2irrigflux = sum(porosity*O2irrig*grid$dx)/100,
+                 OrgC=TOC*12*1e-9/2.5*100) # Convert to percent of dry weight.
+            ) 
+  })
+}
+
+parms <- c(
+  porosity  = 0.8    , # -
+  minrate   = 1/100   , # /d - mineralisation rate
+  OMflux    = 1000    , # nmol/cm2/d Flux of Organic Matter
+  O2BW      = 300    , # nmol/cm3       - bottom water oxygen concentration
+  DICBW      = 2000    , # nmol/cm3       - bottom water oxygen concentration
+  DO2       = as.numeric(diffcoeff(species="O2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
+  DDIC       = as.numeric(diffcoeff(species="CO2")*86400*1e4)/(1-log(0.8*0.8)),     # cm2/d - molecular diffusion coefficient
+  ks        = 1     , # Oxygen limitation for oxic respiration
+  alpha0    = 0      , # Irrigation coefficient
+  irrigdepth  = 3    , # Irrigation Depth
+  Dbioturb   = 1/365      # cm2/d Bioturbation coeficient
+)
+
+ICO2 <- rep.int(c(300),length(grid$x.mid))
+ICTOC <- rep.int(c(.03),length(grid$x.mid))
+ICDIC <- rep.int(c(3000),length(grid$x.mid))
+
+IC<-cbind(ICO2,ICTOC,ICDIC)
+
+# computes the steady-state solution
+DefaultRun  <- steady.1D(y = IC, parms = parms, func = TOCDICmodel, nspec = 3, names = c("O2","TOC","DIC"),pos=T)
+plot(DefaultRun,xyswap=T,grid=grid$x.mid)
+
+
+plot(DefaultRun,xyswap=T,grid=grid$x.mid, which = 'OrgC')
+
+
+
+
+
+
+```
+
+
+Q2 : Add ammonium and nitrate.
+
+* Ammonium is produced from OM mineralisation (e.g. consider a C/N ratio of 10).
+* Nitrification can be expressed as `Nitri = rnit*NH3*O2/(O2+ksO2nitri)`
+* As before, compute first the total respiration on the basis of the TOC variable. 
+* Total resp is then partitionned by computing first the relative importance of the differetn pathways : 
+
+     - Oxicminlim = O2/(O2+ksO2oxic)
+     - Denitrilim = (1-O2/(O2+kinO2denit)) * NO3/(NO3+ksNO3denit), ie. denitrification is limited by nitrate and inhibited by oxygen.
+     - Anoxiclim  = (1-O2/(O2+kinO2anox))*(1-NO3/(NO3+kinNO3anox)), anoxic mineralisation is inhibited by both nitrate and oxygen.
+     - Rescale    = 1/(Oxicminlim+Denitrilim+Anoxiclim), we normalize, so that the three mineralisation pathways sums to 1.
+     
+* The oxydants consumption is then provided by
+
+      OxicMin    = totresp*Oxicminlim*Rescale        ! Oxic mineralisation
+      Denitrific = totresp*Denitrilim*Rescale        ! Denitrification
+      AnoxicMin  = totresp*Anoxiclim *Rescale        ! Anoxic mineralisation, ie. ODU production
