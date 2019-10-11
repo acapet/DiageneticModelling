@@ -167,7 +167,7 @@ print('Diffusive flux at the sediment interface for parms2')
 print(paste0(format(out2$O2flux, digits=5),' mmolO2/m2/d'))
 ```
 
-! WHEN YOU'RE DONE ! Execute the following code chunks in Rstudio, to explore interactively the role of each parameter. 
+**When you're done,** execute the following code chunks in Rstudio, to explore interactively the role of each parameter. 
 
 ( you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` )
 ```{r, eval=FALSE}
@@ -462,7 +462,7 @@ TOCmodel <- function (t, S, p) {
     TOCtran <- tran.1D(C = TOC, flux.up = OMflux , D = Dbioturb, VF = 1- porosity, dx = grid)
     
     # Respiration
-    resp  <- TOC*minrate*(O2/(O2+ks))  # ! per volume of SOLIDS !
+    resp  <- TOC*minrate*(O2/(O2+ks))   # ! per volume of SOLIDS !
     respL <- resp*(1-porosity)/porosity # ! per volume of LIQUID !
     
     #Irrigation 
@@ -593,16 +593,16 @@ plot(DefaultRun,xyswap=T,grid=grid$x.mid, which = 'OrgC')
 * As before, compute first the total respiration on the basis of the TOC variable. 
 * Total resp is then partitioned by computing first the relative importance of the different pathways : 
 
-     - Oxicminlim = O2/(O2+ksO2oxic)
-     - Denitrilim = (1-O2/(O2+kinO2denit)) * NO3/(NO3+ksNO3denit), ie. denitrification is limited by nitrate and inhibited by oxygen.
-     - Anoxiclim  = (1-O2/(O2+kinO2anox))*(1-NO3/(NO3+kinNO3anox)), anoxic mineralisation is inhibited by both nitrate and oxygen.
-     - Rescale    = 1/(Oxicminlim+Denitrilim+Anoxiclim), we normalize, so that the three mineralisation pathways sum to 1.
+     - `Oxicminlim = O2/(O2+ksO2oxic)`
+     - `Denitrilim = (1-O2/(O2+kinO2denit)) * NO3/(NO3+ksNO3denit)`, ie. denitrification is limited by nitrate and inhibited by oxygen.
+     - `Anoxiclim  = (1-O2/(O2+kinO2anox))*(1-NO3/(NO3+kinNO3anox))`, anoxic mineralisation is inhibited by both nitrate and oxygen.
+     - `Rescale    = 1/(Oxicminlim+Denitrilim+Anoxiclim)`, we normalize, so that the three mineralisation pathways sum to 1.
      
 * The oxydants consumption is then provided by
 
-      OxicMin    = totresp*Oxicminlim*Rescale        ! Oxic mineralisation
-      Denitrific = totresp*Denitrilim*Rescale        ! Denitrification
-      AnoxicMin  = totresp*Anoxiclim *Rescale        ! Anoxic mineralisation, ie. ODU production
+     + `OxicMin    = totresp*Oxicminlim*Rescale` : Oxic mineralisation
+     + `Denitrific = totresp*Denitrilim*Rescale` : Denitrification
+     + `AnoxicMin  = totresp*Anoxiclim *Rescale` : Anoxic mineralisation, ie. ODU production
 
 
 ```{r}

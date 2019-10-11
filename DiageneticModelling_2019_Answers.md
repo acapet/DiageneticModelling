@@ -203,7 +203,7 @@ print(paste0(format(out2$O2flux, digits=5),' mmolO2/m2/d'))
 
     ## [1] "9.8531 mmolO2/m2/d"
 
-! WHEN YOU'RE DONE ! Execute the following code chunks in Rstudio, to explore interactively the role of each parameter.
+**When you're done,** execute the following code chunks in Rstudio, to explore interactively the role of each parameter.
 
 ( you might have to execute : `install.packages('shiny', repos='https://cran.rstudio.com/')` )
 
@@ -343,7 +343,7 @@ summary(Fitout)
     ## 
     ## Parameters:
     ##         Estimate Std. Error t value Pr(>|t|)
-    ## minrate 80843.54   53346.70   1.515    0.154
+    ## minrate 80843.28   53346.48   1.515    0.154
     ## ks         20.00      43.76   0.457    0.655
     ## 
     ## Residual standard error: 15.6 on 13 degrees of freedom
@@ -359,7 +359,7 @@ coef(Fitout)
 ```
 
     ##  minrate       ks 
-    ## 80843.54    20.00
+    ## 80843.28    20.00
 
 Those functions provides us with errors on the parameters of the model, that originate from the noise on the measurements. The error on the parameters can be used to infer the error on the fluxe estimates.
 
@@ -393,7 +393,7 @@ sensout<- sensRange(func=FluxatSteadyStatefunction,
         )
 ```
 
-The resulting estimate for the diffusive oxygen flux at the interface is thus 43.27 +/- 9.389
+The resulting estimate for the diffusive oxygen flux at the interface is thus 42.87 +/- 9.938
 
 ``` r
 hist(sensout$O2flux, breaks = seq(from=0,to=100,by=1))
@@ -545,7 +545,7 @@ TOCmodel <- function (t, S, p) {
     TOCtran <- tran.1D(C = TOC, flux.up = OMflux , D = Dbioturb, VF = 1- porosity, dx = grid)
     
     # Respiration
-    resp  <- TOC*minrate*(O2/(O2+ks))  # ! per volume of SOLIDS !
+    resp  <- TOC*minrate*(O2/(O2+ks))   # ! per volume of SOLIDS !
     respL <- resp*(1-porosity)/porosity # ! per volume of LIQUID !
     
     #Irrigation 
@@ -678,12 +678,14 @@ Exercise 5 : Nitrogen cycle
 -   As before, compute first the total respiration on the basis of the TOC variable.
 -   Total resp is then partitioned by computing first the relative importance of the different pathways :
 
-    -   Oxicminlim = O2/(O2+ksO2oxic)
-    -   Denitrilim = (1-O2/(O2+kinO2denit)) \* NO3/(NO3+ksNO3denit), ie. denitrification is limited by nitrate and inhibited by oxygen.
-    -   Anoxiclim = (1-O2/(O2+kinO2anox))\*(1-NO3/(NO3+kinNO3anox)), anoxic mineralisation is inhibited by both nitrate and oxygen.
-    -   Rescale = 1/(Oxicminlim+Denitrilim+Anoxiclim), we normalize, so that the three mineralisation pathways sum to 1.
+    -   `Oxicminlim = O2/(O2+ksO2oxic)`
+    -   `Denitrilim = (1-O2/(O2+kinO2denit)) * NO3/(NO3+ksNO3denit)`, ie. denitrification is limited by nitrate and inhibited by oxygen.
+    -   `Anoxiclim  = (1-O2/(O2+kinO2anox))*(1-NO3/(NO3+kinNO3anox))`, anoxic mineralisation is inhibited by both nitrate and oxygen.
+    -   `Rescale    = 1/(Oxicminlim+Denitrilim+Anoxiclim)`, we normalize, so that the three mineralisation pathways sum to 1.
 -   The oxydants consumption is then provided by
 
-    OxicMin = totresp*Oxicminlim*Rescale ! Oxic mineralisation Denitrific = totresp*Denitrilim*Rescale ! Denitrification AnoxicMin = totresp*Anoxiclim *Rescale ! Anoxic mineralisation, ie. ODU production
+    -   `OxicMin    = totresp*Oxicminlim*Rescale` : Oxic mineralisation
+    -   `Denitrific = totresp*Denitrilim*Rescale` : Denitrification
+    -   `AnoxicMin  = totresp*Anoxiclim *Rescale` : Anoxic mineralisation, ie. ODU production
 
 Solution : This is actually the complete OMEXDIA model ! Find the code and online version at : <http://www.rforscience.com/modelling/omexdia/> .
